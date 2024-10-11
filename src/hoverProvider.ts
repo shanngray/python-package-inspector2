@@ -25,12 +25,21 @@ export class HoverProvider implements vscode.HoverProvider {
         // Regex to match import statements and capture the package name
         const importRegex = /(?:import\s+(\w+)|from\s+(\w+)\s+import)/;
         const range = document.getWordRangeAtPosition(position, importRegex);
-        if (!range) return;
+        console.log('Range:', range);
+        if (!range) {
+            console.log('No range found');
+            return;
+        }
 
         const importStatement = document.getText(range);
+        console.log('Import statement:', importStatement);
         const packageNameMatch = importStatement.match(importRegex);
         const packageName = packageNameMatch ? packageNameMatch[1] || packageNameMatch[2] : null;
-        if (!packageName) return;
+        console.log('Package name:', packageName);
+        if (!packageName) {
+            console.log('No package name found');
+            return;
+        }
 
         console.log(`Package name extracted: ${packageName}`);
 
@@ -46,22 +55,25 @@ export class HoverProvider implements vscode.HoverProvider {
                     this.packageCache.set(packageName, packageInfo);
                     console.log(`Package info cached for: ${packageName}`);
                 } else {
-                    // If fetching fails, do not provide hover information
+                    // If fetching fails, provide a default message
                     console.log(`Package info not found for: ${packageName}`);
-                    return;
+                    return new vscode.Hover(`No information available for ${packageName}`);
                 }
             } catch (error) {
                 console.error(`Error fetching package info for ${packageName}:`, error);
-                return;
+                return new vscode.Hover(`Error fetching information for ${packageName}`);
             }
         }
 
         // Create markdown content for the hover tooltip
         const markdown = new vscode.MarkdownString(`**${packageName}**\n\n` +
-            `⭐ Stars: ${packageInfo.stars}\n` +
-            `🍴 Forks: ${packageInfo.forks}\n` +
+            `📅 Latest Release: ${packageInfo.latestRelease}\n` +
             `👥 Maintainers: ${packageInfo.maintainers}\n` +
-            `📅 Latest Release: ${packageInfo.latestRelease}`);
+            (packageInfo.githubUrl ? 
+                `⭐ Stars: ${packageInfo.stars}\n` +
+                `🍴 Forks: ${packageInfo.forks}\n` +
+                `🔗 [View on GitHub](${packageInfo.githubUrl})`
+            : `ℹ️ No GitHub repository found`));
         console.log(`Hover info created for: ${packageName}`);
 
         return new vscode.Hover(markdown);
